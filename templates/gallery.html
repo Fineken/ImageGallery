@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Галерея изображений</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .gallery-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .upload-link {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .upload-link:hover {
+            background-color: #45a049;
+        }
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .image-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: white;
+        }
+        .image-preview {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-bottom: 1px solid #ddd;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .image-preview:hover {
+            opacity: 0.9;
+        }
+        .image-info {
+            padding: 10px;
+        }
+        .image-name {
+            margin: 0 0 10px 0;
+            word-break: break-all;
+        }
+        .image-url {
+            word-break: break-all;
+            padding: 8px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .no-images {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        /* Модальное окно */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            overflow: auto;
+        }
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 90%;
+            max-height: 90vh;
+            margin-top: 2vh;
+        }
+        .close {
+            position: fixed;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: #bbb;
+        }
+        @keyframes zoom {
+            from {transform:scale(0)}
+            to {transform:scale(1)}
+        }
+        .modal-content {
+            animation-name: zoom;
+            animation-duration: 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="gallery-container">
+        <div class="header">
+            <h2>Галерея изображений</h2>
+            <a href="/" class="upload-link">Загрузить новое</a>
+        </div>
+        
+        {% if files %}
+        <div class="gallery-grid">
+            {% for file in files %}
+            <div class="image-card">
+                <img src="{{ host_url }}{{ file.url }}" alt="{{ file.name }}" class="image-preview" onclick="openModal(this.src)">
+                <div class="image-info">
+                    <h3 class="image-name">{{ file.name }}</h3>
+                    <div class="image-url" onclick="copyToClipboard(this)" title="Нажмите чтобы скопировать">
+                        {{ host_url }}{{ file.url }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-images">
+            <h3>Нет загруженных изображений</h3>
+            <p>Загрузите первое изображение, нажав кнопку "Загрузить новое"</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Модальное окно -->
+    <div id="imageModal" class="modal" onclick="closeModal()">
+        <span class="close">&times;</span>
+        <img class="modal-content" id="modalImage">
+    </div>
+
+    <script>
+        function copyToClipboard(element) {
+            const text = element.textContent.trim();
+            navigator.clipboard.writeText(text).then(() => {
+                const originalBackground = element.style.backgroundColor;
+                element.style.backgroundColor = '#dff0d8';
+                setTimeout(() => {
+                    element.style.backgroundColor = originalBackground;
+                }, 500);
+            });
+        }
+
+        function openModal(imageSrc) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modal.style.display = "block";
+            modalImg.src = imageSrc;
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').style.display = "none";
+        }
+
+        // Закрытие модального окна при нажатии Esc
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Escape") {
+                closeModal();
+            }
+        });
+
+        // Предотвращение закрытия при клике на само изображение
+        document.getElementById('modalImage').onclick = function(event) {
+            event.stopPropagation();
+        };
+    </script>
+</body>
+</html> 

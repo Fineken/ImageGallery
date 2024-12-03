@@ -1,18 +1,10 @@
-from flask import Flask, request, render_template, url_for, send_from_directory, make_response
+from flask import Flask, request, render_template, url_for, send_from_directory
 import os
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
 
 app = Flask(__name__)
-
-# Настраиваем CORS более детально
-CORS(app, resources={
-    r"/static/*": {
-        "origins": ["http://msm-rsde01-ap07:8088"],
-        "methods": ["GET", "HEAD", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
-    }
-})
+CORS(app)  # Включаем CORS для всего приложения
 
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024  # 32MB max-limit
@@ -54,21 +46,27 @@ def gallery():
     files = get_uploaded_files()
     return render_template('gallery.html', files=files, host_url=request.host_url.rstrip('/'))
 
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', 'http://msm-rsde01-ap07:8088')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-    response.headers.add('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
-    response.headers.add('Access-Control-Max-Age', '3600')
-    return response
-
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    response = send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
 
 @app.route('/static/uploads/<filename>')
 def serve_static(filename):
-    response = make_response(send_from_directory(app.config['UPLOAD_FOLDER'], filename))
+    response = send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = '*'
+    return response
+
+# Обработка OPTIONS запросов для статических файлов
+@app.route('/static/uploads/<filename>', methods=['OPTIONS'])
+def serve_static_options(filename):
+    response = app.make_default_options_response()
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = '*'
     return response
 
 if __name__ == '__main__':

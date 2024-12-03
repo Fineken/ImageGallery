@@ -1,11 +1,18 @@
-from flask import Flask, request, render_template, url_for, send_from_directory
+from flask import Flask, request, render_template, url_for, send_from_directory, make_response
 import os
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
 
 app = Flask(__name__)
-# Включаем CORS для всех маршрутов
-CORS(app)
+
+# Настраиваем CORS более детально
+CORS(app, resources={
+    r"/static/*": {
+        "origins": ["http://msm-rsde01-ap07:8088"],
+        "methods": ["GET", "HEAD", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024  # 32MB max-limit
@@ -47,16 +54,21 @@ def gallery():
     files = get_uploaded_files()
     return render_template('gallery.html', files=files, host_url=request.host_url.rstrip('/'))
 
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', 'http://msm-rsde01-ap07:8088')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
+    response.headers.add('Access-Control-Max-Age', '3600')
+    return response
+
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    response = send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    return response
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/static/uploads/<filename>')
 def serve_static(filename):
-    response = send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-    response.headers['Access-Control-Allow-Origin'] = '*'
+    response = make_response(send_from_directory(app.config['UPLOAD_FOLDER'], filename))
     return response
 
 if __name__ == '__main__':
